@@ -2,13 +2,15 @@ import React from "react";
 
 function MetricCard({ title, value }) {
   return (
-    <div style={{
-      border: "1px solid #ddd",
-      padding: "20px",
-      borderRadius: "10px",
-      width: "200px",
-      background: "#f9f9f9"
-    }}>
+    <div
+      style={{
+        background: "#fff",
+        padding: "20px",
+        borderRadius: "12px",
+        boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+        minWidth: "150px",
+      }}
+    >
       <h3>{title}</h3>
       <h2>{value}</h2>
     </div>

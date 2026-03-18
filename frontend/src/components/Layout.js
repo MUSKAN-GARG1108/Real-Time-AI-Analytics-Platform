@@ -1,20 +1,18 @@
-import React from "react";
 import Sidebar from "./Sidebar";
-import Navbar from "./Navbar";
 
 function Layout({ children }) {
   return (
     <div style={{ display: "flex" }}>
-      
       <Sidebar />
 
-      <div style={{ flex: 1 }}>
-        <Navbar />
-        <div style={{ padding: "20px" }}>
-          {children}
-        </div>
+      <div style={{
+        flex: 1,
+        background: "#f5f6fa",
+        minHeight: "100vh",
+        padding: "20px"
+      }}>
+        {children}
       </div>
-
     </div>
   );
 }

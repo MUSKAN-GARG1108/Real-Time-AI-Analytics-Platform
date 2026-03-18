@@ -7,7 +7,7 @@ import Projects from "./pages/Projects";
 import Dashboard from "./pages/Dashboard";
 import UploadData from "./pages/UploadData";
 import Insights from "./pages/Insights";
-import EventSimulator from "./pages/EventSimulator";
+import EventSimulator from "./pages/Events";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";

@@ -1,57 +1,79 @@
 const express = require("express");
-const multer = require("multer");
-const axios = require("axios");
-const FormData = require("form-data");
-const fs = require("fs");
-
 const router = express.Router();
+const multer = require("multer");
+const csv = require("csv-parser");
+const fs = require("fs");
 
 const upload = multer({ dest: "uploads/" });
 
-let latestMetrics = {};
+router.post("/upload", upload.single("file"), (req, res) => {
+  const results = [];
 
-router.post("/upload-data", upload.single("file"), async (req, res) => {
+  fs.createReadStream(req.file.path)
+    .pipe(csv())
+    .on("data", (data) => results.push(data))
+    .on("end", () => {
+      let liveMetrics = {
+        total_events: 0,
+        total_revenue: 0,
+        active_users: new Set(),
+        productCounts: {},
+        revenueHistory: [],
+      };
+      // let liveMetrics = req.app.get("liveMetrics");
 
-  console.log("File uploaded:", req.file.filename);
+      results.forEach((row) => {
+        const price = Number(row.amount || 0);
+        const product = row.product;
+        const user = row.user_id;
 
-  const filePath = req.file.path;
+        liveMetrics.total_events += 1;
+        liveMetrics.total_revenue += price;
+        liveMetrics.active_users.add(user);
 
-  const formData = new FormData();
-  formData.append("file", fs.createReadStream(filePath));
+        if (!liveMetrics.productCounts[product]) {
+          liveMetrics.productCounts[product] = 0;
+        }
 
-  try {
+        liveMetrics.productCounts[product] += 1;
 
-    console.log("Sending file to Python analytics service...");
+        liveMetrics.revenueHistory.push({
+          time: row.timestamp,
+          revenue: liveMetrics.total_revenue,
+        });
+      });
 
-    const response = await axios.post(
-      "http://localhost:6000/process-data",
-      formData,
-      { headers: formData.getHeaders() }
-    );
+      const topProduct = Object.keys(liveMetrics.productCounts).reduce(
+        (a, b) =>
+          liveMetrics.productCounts[a] > liveMetrics.productCounts[b] ? a : b,
+      );
 
-    console.log("Processing complete. Metrics received.");
+      const responseMetrics = {
+        total_events: liveMetrics.total_events,
+        total_revenue: liveMetrics.total_revenue,
+        active_users: liveMetrics.active_users.size,
+        top_product: topProduct,
+      };
 
-    latestMetrics = response.data;
+      const productChart = Object.keys(liveMetrics.productCounts).map((p) => ({
+        product: p,
+        sales: liveMetrics.productCounts[p],
+      }));
 
-    console.log("Metrics:", latestMetrics);
+      // 🔥 SAVE globally
+      req.app.set("liveMetrics", liveMetrics);
 
-    res.json({
-      message: "Data processed successfully",
-      metrics: latestMetrics
+      const io = req.app.get("io");
+
+      // 🔥 EMIT TO DASHBOARD
+      io.emit("metrics-update", {
+        metrics: responseMetrics,
+        revenueData: liveMetrics.revenueHistory,
+        productData: productChart,
+      });
+
+      res.json({ message: "File processed successfully" });
     });
-
-  } catch (error) {
-
-    console.error("Error processing file:", error.message);
-
-    res.status(500).json({ error: "Processing failed" });
-
-  }
-
-});
-
-router.get("/metrics", (req, res) => {
-  res.json(latestMetrics);
 });
 
 module.exports = router;

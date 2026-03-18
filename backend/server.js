@@ -31,6 +31,14 @@ app.use(eventRoute);
 app.use(authRoutes);
 app.use(projectRoutes);
 
+// app.set("liveMetrics", {
+//   total_events: 0,
+//   total_revenue: 0,
+//   active_users: new Set(),
+//   productCounts: {},
+//   revenueHistory: []
+// });
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 });
